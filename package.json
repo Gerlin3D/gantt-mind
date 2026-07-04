@@ -1,0 +1,23 @@
+{
+  "name": "gantt-mind",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/Gerlin3D/gantt-mind#readme",
+  "bugs": {
+    "url": "https://github.com/Gerlin3D/gantt-mind/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Gerlin3D/gantt-mind.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
