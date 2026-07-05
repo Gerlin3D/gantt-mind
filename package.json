@@ -1,7 +1,7 @@
 {
   "name": "gantt-mind",
   "version": "1.0.0",
-  "description": "",
+  "description": "AI-native project plan editor with a Gantt workflow.",
   "homepage": "https://github.com/Gerlin3D/gantt-mind#readme",
   "bugs": {
     "url": "https://github.com/Gerlin3D/gantt-mind/issues"
@@ -12,12 +12,23 @@
   },
   "license": "ISC",
   "author": "",
-  "type": "commonjs",
-  "main": "index.js",
-  "directories": {
-    "doc": "docs"
-  },
+  "private": true,
+  "workspaces": [
+    "frontend"
+  ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev:frontend": "npm --workspace frontend run dev",
+    "dev:backend": "set \"UV_CACHE_DIR=.uv-cache\"&& set \"UV_PYTHON_INSTALL_DIR=.uv-python\"&& uv run --project backend uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
+    "frontend:lint": "npm --workspace frontend run lint",
+    "frontend:typecheck": "npm --workspace frontend run typecheck",
+    "frontend:test": "npm --workspace frontend run test",
+    "frontend:build": "npm --workspace frontend run build",
+    "backend:lint": "set \"UV_CACHE_DIR=.uv-cache\"&& set \"UV_PYTHON_INSTALL_DIR=.uv-python\"&& uv run --project backend ruff check backend/app backend/tests",
+    "backend:typecheck": "set \"UV_CACHE_DIR=.uv-cache\"&& set \"UV_PYTHON_INSTALL_DIR=.uv-python\"&& uv run --project backend mypy backend/app backend/tests",
+    "backend:test": "set \"UV_CACHE_DIR=.uv-cache\"&& set \"UV_PYTHON_INSTALL_DIR=.uv-python\"&& uv run --project backend pytest backend/tests",
+    "lint": "npm run frontend:lint && npm run backend:lint",
+    "typecheck": "npm run frontend:typecheck && npm run backend:typecheck",
+    "test": "npm run frontend:test && npm run backend:test",
+    "build": "npm run frontend:build"
   }
 }
