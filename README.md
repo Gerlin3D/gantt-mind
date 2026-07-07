@@ -30,6 +30,12 @@ On Windows PowerShell, create the file manually or run:
 Copy-Item .env.example .env
 ```
 
+Frontend uses `VITE_API_BASE_URL` to reach the backend API. The default local value is:
+
+```env
+VITE_API_BASE_URL=http://localhost:8000
+```
+
 ## Install
 
 Frontend dependencies:
@@ -88,6 +94,9 @@ Start frontend:
 ```bash
 npm run dev:frontend
 ```
+
+Open the frontend at `http://localhost:5173`. The read-only demo plan view calls
+`GET /api/plans/demo` through `VITE_API_BASE_URL`.
 
 Health endpoint:
 
