@@ -56,6 +56,21 @@ Start PostgreSQL:
 docker compose up -d postgres
 ```
 
+On Windows PowerShell, if local port `5432` is already occupied, override the published
+PostgreSQL port before starting Docker Compose:
+
+```powershell
+$env:POSTGRES_PORT='55432'
+docker compose up -d postgres
+```
+
+Apply database migrations and seed the demo plan:
+
+```bash
+npm run backend:migrate
+npm run backend:seed
+```
+
 Start backend:
 
 ```bash
@@ -80,6 +95,12 @@ Health endpoint:
 curl http://localhost:8000/api/health
 ```
 
+Demo plan endpoint:
+
+```bash
+curl http://localhost:8000/api/plans/demo
+```
+
 ## Checks
 
 Frontend:
@@ -97,6 +118,8 @@ Backend:
 npm run backend:lint
 npm run backend:typecheck
 npm run backend:test
+npm run backend:migrate
+npm run backend:seed
 ```
 
 Aggregate scripts are also available:

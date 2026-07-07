@@ -18,7 +18,7 @@
   ],
   "scripts": {
     "dev:frontend": "npm --workspace frontend run dev",
-    "dev:backend": "set \"UV_CACHE_DIR=.uv-cache\"&& set \"UV_PYTHON_INSTALL_DIR=.uv-python\"&& uv run --project backend uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
+    "dev:backend": "set \"UV_CACHE_DIR=.uv-cache\"&& set \"UV_PYTHON_INSTALL_DIR=.uv-python\"&& set \"PYTHONPATH=backend\"&& uv run --project backend uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
     "frontend:lint": "npm --workspace frontend run lint",
     "frontend:typecheck": "npm --workspace frontend run typecheck",
     "frontend:test": "npm --workspace frontend run test",
@@ -26,6 +26,9 @@
     "backend:lint": "set \"UV_CACHE_DIR=.uv-cache\"&& set \"UV_PYTHON_INSTALL_DIR=.uv-python\"&& uv run --project backend ruff check backend/app backend/tests",
     "backend:typecheck": "set \"UV_CACHE_DIR=.uv-cache\"&& set \"UV_PYTHON_INSTALL_DIR=.uv-python\"&& uv run --project backend mypy backend/app backend/tests",
     "backend:test": "set \"UV_CACHE_DIR=.uv-cache\"&& set \"UV_PYTHON_INSTALL_DIR=.uv-python\"&& uv run --project backend pytest backend/tests",
+    "backend:migrate": "set \"UV_CACHE_DIR=.uv-cache\"&& set \"UV_PYTHON_INSTALL_DIR=.uv-python\"&& set \"PYTHONPATH=backend\"&& uv run --project backend alembic -c backend/alembic.ini upgrade head",
+    "backend:migrate:down": "set \"UV_CACHE_DIR=.uv-cache\"&& set \"UV_PYTHON_INSTALL_DIR=.uv-python\"&& set \"PYTHONPATH=backend\"&& uv run --project backend alembic -c backend/alembic.ini downgrade base",
+    "backend:seed": "set \"UV_CACHE_DIR=.uv-cache\"&& set \"UV_PYTHON_INSTALL_DIR=.uv-python\"&& set \"PYTHONPATH=backend\"&& uv run --project backend python -m app.seed",
     "lint": "npm run frontend:lint && npm run backend:lint",
     "typecheck": "npm run frontend:typecheck && npm run backend:typecheck",
     "test": "npm run frontend:test && npm run backend:test",
