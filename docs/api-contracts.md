@@ -139,15 +139,68 @@ Response `404`:
 
 Verification status: export was checked on real PostgreSQL during Stage 5 Verify Stage. Export → import round trip is covered by backend tests and API smoke.
 
+### POST /api/plans/{plan_id}/ai/command
+
+Sends a natural-language instruction to the backend, which asks the OpenAI
+provider for a strict JSON operation proposal and applies it through the
+existing ChangeSet pipeline (same domain validation/scheduler/repository path
+as MCP `apply_change_set`).
+
+Request:
+
+```json
+{
+  "message": "Move QA testing after Integration"
+}
+```
+
+Response `200`:
+
+```json
+{
+  "plan": { "...updated plan snapshot..." },
+  "change_summary": "QA testing now starts after Integration.",
+  "operations": [
+    {
+      "type": "add_dependency",
+      "predecessor_task_id": "integration",
+      "successor_task_id": "qa-testing"
+    }
+  ]
+}
+```
+
+If the instruction is ambiguous or cannot be mapped to allowed operations
+using only known task ids, the response still returns `200` with
+`operations: []`, an unchanged `plan`, and a clarification message in
+`change_summary`. No ChangeSet is applied in that case.
+
+Supported operation types: `shift_tasks`, `change_duration`,
+`change_assignee`, `add_dependency`, `remove_dependency` — the same shapes
+already used by `apply_change_set` (see MCP contracts below). `delete_task` is
+intentionally not exposed to the AI command.
+
+Error responses (`detail` message, no raw traceback):
+
+- `404` — unknown `plan_id`.
+- `422` — empty/blank `message`, or the AI provider returned output that is
+  not valid JSON or does not match the expected schema (including unknown
+  task ids).
+- `502` — missing `OPENAI_API_KEY` or an AI provider request failure.
+- `409` — plan version conflict (concurrent update).
+- `400` — domain/ChangeSet validation error (e.g. invalid duration).
+
+`OPENAI_API_KEY` must be set only on the backend; the frontend never receives
+it or the model name.
+
 ## Planned endpoints
 
 ```text
 PATCH  /api/plans/{plan_id}/tasks/{task_id}
-POST   /api/plans/{plan_id}/chat
 POST   /api/plans/{plan_id}/undo
 ```
 
-Планируемые endpoints будут уточняться на этапах 7, 8 и 9.
+Планируемые endpoints будут уточняться на этапах 8 и 9.
 
 ## MCP contracts
 

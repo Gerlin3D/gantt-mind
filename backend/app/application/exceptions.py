@@ -21,3 +21,13 @@ class PlanVersionConflictError(ApplicationError):
 class InvalidChangeSetError(ApplicationError):
     def __init__(self, message: str) -> None:
         super().__init__(message)
+
+
+class LlmProviderError(ApplicationError):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
+class InvalidAiOutputError(ApplicationError):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)

@@ -50,3 +50,14 @@ export type ExportPlanResult = {
   blob: Blob;
   filename: string;
 };
+
+export type AiCommandRequest = {
+  planId: string;
+  message: string;
+};
+
+export type AiCommandResponse = {
+  plan: PlanDto;
+  change_summary: string;
+  operations: Record<string, unknown>[];
+};

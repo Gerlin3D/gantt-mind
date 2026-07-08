@@ -1,9 +1,17 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useMemo, useRef, useState } from 'react';
 import { ApiRequestError, isImportValidationErrorPayload } from '../api/plansApi';
-import { planQueryKeys, useDemoPlan, useExportPlan, useImportPlan, usePlan } from '../hooks/usePlans';
+import {
+  planQueryKeys,
+  useAiCommand,
+  useDemoPlan,
+  useExportPlan,
+  useImportPlan,
+  usePlan,
+} from '../hooks/usePlans';
 import type { ImportValidationErrorPayload, PlanDto } from '../model/types';
 import { buildTimelineRange, generateTimelineDays, sortTasksByPosition } from '../utils/dateUtils';
+import { type AiMessage, AiCommandPanel } from './AiCommandPanel';
 import { GanttWorkspace } from './GanttWorkspace';
 import { ImportPlanDialog } from './ImportPlanDialog';
 import { PlanEmptyState } from './PlanEmptyState';
@@ -20,6 +28,9 @@ export function PlanPage() {
   const activePlanQuery = usePlan(activePlanId ?? '');
   const importMutation = useImportPlan();
   const exportMutation = useExportPlan();
+  const aiCommandMutation = useAiCommand();
+  const [aiHistory, setAiHistory] = useState<AiMessage[]>([]);
+  const [aiError, setAiError] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
@@ -32,6 +43,7 @@ export function PlanPage() {
   const syncingScrollRef = useRef(false);
 
   const currentQuery = activePlanId ? activePlanQuery : demoPlanQuery;
+  const currentQueryKey = activePlanId ? planQueryKeys.byId(activePlanId) : planQueryKeys.demo;
   const { data: plan, isPending, isError, error, refetch, isFetching } = currentQuery;
   const sortedTasks = useMemo(() => (plan ? sortTasksByPosition(plan.tasks) : []), [plan]);
   const selectedTask = sortedTasks.find((task) => task.id === selectedTaskId) ?? null;
@@ -96,6 +108,31 @@ export function PlanPage() {
     }
   }
 
+  async function handleAiSend(planForCommand: PlanDto, message: string) {
+    setAiError(null);
+    setAiHistory((previous) => [
+      ...previous,
+      { id: `user-${Date.now()}`, role: 'user', text: message },
+    ]);
+
+    try {
+      const result = await aiCommandMutation.mutateAsync({ planId: planForCommand.id, message });
+      queryClient.setQueryData(currentQueryKey, result.plan);
+      setAiHistory((previous) => [
+        ...previous,
+        { id: `assistant-${Date.now()}`, role: 'assistant', text: result.change_summary },
+      ]);
+    } catch (caughtError) {
+      const errorMessage =
+        caughtError instanceof Error ? caughtError.message : 'AI command failed.';
+      setAiError(errorMessage);
+      setAiHistory((previous) => [
+        ...previous,
+        { id: `assistant-${Date.now()}`, role: 'assistant', text: errorMessage },
+      ]);
+    }
+  }
+
   if (isPending) {
     return <PlanSkeleton />;
   }
@@ -123,6 +160,12 @@ export function PlanPage() {
         </p>
       ) : null}
       <PlanSummary plan={plan} projectEndDate={timelineRange?.end ?? null} />
+      <AiCommandPanel
+        history={aiHistory}
+        isSending={aiCommandMutation.isPending}
+        error={aiError}
+        onSend={(message) => void handleAiSend(plan, message)}
+      />
       {sortedTasks.length === 0 || !timelineRange ? (
         <PlanEmptyState planName={plan.name} />
       ) : (

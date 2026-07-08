@@ -260,4 +260,79 @@ describe('PlanPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'No tasks yet' })).toBeInTheDocument();
   });
+
+  it('renders the AI command panel with a placeholder and a disabled send button', async () => {
+    mockPlanResponse(demoPlanFixture);
+
+    renderWithQueryClient(<PlanPage />);
+
+    expect(await screen.findByRole('heading', { name: 'GanttMind Demo Project' })).toBeInTheDocument();
+    expect(screen.getByText('Try: Move QA testing after Integration')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText('AI command'), {
+      target: { value: 'Move discovery one day later' },
+    });
+
+    expect(screen.getByRole('button', { name: 'Send' })).toBeEnabled();
+  });
+
+  it('sends an AI command and updates the plan from the response', async () => {
+    const updatedPlan = { ...demoPlanFixture, version: demoPlanFixture.version + 1 };
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit): ReturnType<typeof fetch> => {
+      if (String(input).endsWith('/ai/command') && init?.method === 'POST') {
+        return Promise.resolve(
+          Response.json({
+            plan: updatedPlan,
+            change_summary: 'Discovery was moved one day later.',
+            operations: [],
+          }),
+        );
+      }
+      return Promise.resolve(Response.json(demoPlanFixture));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderWithQueryClient(<PlanPage />);
+
+    expect(await screen.findByRole('heading', { name: 'GanttMind Demo Project' })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('AI command'), {
+      target: { value: 'Move discovery one day later' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    expect(await screen.findByText('Discovery was moved one day later.')).toBeInTheDocument();
+    expect(screen.getByText('Move discovery one day later')).toBeInTheDocument();
+
+    const [, commandInit] = fetchMock.mock.calls.find(([input]) =>
+      String(input).endsWith('/ai/command'),
+    ) ?? [];
+    expect(JSON.parse(String(commandInit?.body))).toEqual({
+      message: 'Move discovery one day later',
+    });
+  });
+
+  it('shows an AI error message when the command fails', async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit): ReturnType<typeof fetch> => {
+      if (String(input).endsWith('/ai/command') && init?.method === 'POST') {
+        return Promise.resolve(
+          Response.json({ detail: 'Unknown task id(s): missing-task' }, { status: 422 }),
+        );
+      }
+      return Promise.resolve(Response.json(demoPlanFixture));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderWithQueryClient(<PlanPage />);
+
+    expect(await screen.findByRole('heading', { name: 'GanttMind Demo Project' })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('AI command'), {
+      target: { value: 'Move an unknown task' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    expect(await screen.findAllByText('Unknown task id(s): missing-task')).toHaveLength(2);
+  });
 });

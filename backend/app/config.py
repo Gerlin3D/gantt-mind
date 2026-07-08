@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://gantt_mind:gantt_mind@localhost:5432/gantt_mind"
     max_excel_upload_bytes: int = 5 * 1024 * 1024
     backend_cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    openai_api_key: str = ""
+    openai_model: str = "gpt-4.1-mini"
 
     model_config = SettingsConfigDict(
         env_file=("../.env", ".env"),

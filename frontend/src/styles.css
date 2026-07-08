@@ -123,6 +123,83 @@ button {
   font-size: 1rem;
 }
 
+.ai-panel {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 16px 18px;
+}
+
+.ai-panel-header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.ai-panel-history {
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.ai-panel-placeholder {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.ai-message-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ai-message {
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.ai-message-user {
+  background: #eef2ff;
+  color: #312e81;
+}
+
+.ai-message-assistant {
+  background: #f4f6f8;
+  color: #17202a;
+}
+
+.ai-panel-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.ai-panel-form textarea {
+  flex: 1;
+  min-height: 60px;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: #17202a;
+  font: inherit;
+  padding: 8px 10px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
 .gantt-workspace {
   display: grid;
   grid-template-columns: minmax(420px, 38%) minmax(620px, 1fr);

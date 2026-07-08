@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { exportPlan, getDemoPlan, getPlanById, importPlan } from '../api/plansApi';
+import { exportPlan, getDemoPlan, getPlanById, importPlan, sendAiCommand } from '../api/plansApi';
 
 export const planQueryKeys = {
   demo: ['plans', 'demo'] as const,
@@ -30,5 +30,12 @@ export function useImportPlan() {
 export function useExportPlan() {
   return useMutation({
     mutationFn: exportPlan,
+  });
+}
+
+export function useAiCommand() {
+  return useMutation({
+    mutationFn: ({ planId, message }: { planId: string; message: string }) =>
+      sendAiCommand(planId, message),
   });
 }

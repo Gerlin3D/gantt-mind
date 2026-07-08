@@ -1,4 +1,5 @@
 import type {
+  AiCommandResponse,
   ExportPlanResult,
   ImportPlanRequest,
   ImportValidationErrorPayload,
@@ -144,6 +145,24 @@ export async function exportPlan(planId: string): Promise<ExportPlanResult> {
     blob: await response.blob(),
     filename: filenameFromContentDisposition(response.headers.get('content-disposition'), `${planId}.xlsx`),
   };
+}
+
+export async function sendAiCommand(planId: string, message: string): Promise<AiCommandResponse> {
+  const response = await fetch(buildApiUrl(`/api/plans/${encodeURIComponent(planId)}/ai/command`), {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ message }),
+  });
+
+  if (!response.ok) {
+    const { message: errorMessage, payload } = await readError(response);
+    throw new ApiRequestError(errorMessage, response.status, payload);
+  }
+
+  return response.json() as Promise<AiCommandResponse>;
 }
 
 export function isImportValidationErrorPayload(

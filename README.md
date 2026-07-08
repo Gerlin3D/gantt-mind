@@ -155,6 +155,27 @@ curl -OJ http://localhost:8000/api/plans/demo-plan/export
 The default upload limit is configured by `MAX_EXCEL_UPLOAD_BYTES` and is set to
 5 MB in `.env.example`.
 
+## AI command (MVP)
+
+The Gantt workspace has a compact AI panel that sends a natural-language
+instruction to the backend, which asks OpenAI for a strict JSON operation
+proposal and applies it through the existing ChangeSet pipeline. The LLM
+never touches the database, calculates dates, or bypasses domain validation.
+
+Set `OPENAI_API_KEY` (and optionally `OPENAI_MODEL`) locally to try it:
+
+```bash
+curl -X POST http://localhost:8000/api/plans/demo-plan/ai/command \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Move QA testing after Integration"}'
+```
+
+Supported operations: `shift_tasks`, `change_duration`, `change_assignee`,
+`add_dependency`, `remove_dependency` (the same operations already exposed by
+`apply_change_set`; `delete_task` is intentionally not exposed to the AI
+command for safety). Ambiguous instructions return no operations and a
+clarification message instead of guessing.
+
 ## Checks
 
 Frontend:
@@ -219,6 +240,8 @@ Environment variables:
 ```env
 DATABASE_URL=postgresql+psycopg://user:password@host/database?sslmode=require
 BACKEND_CORS_ORIGINS=https://your-frontend.vercel.app,http://localhost:5173
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-4.1-mini
 ```
 
 Use the Neon pooled connection string for `DATABASE_URL` and keep the
@@ -226,6 +249,12 @@ Use the Neon pooled connection string for `DATABASE_URL` and keep the
 SQLAlchemy in this project). `BACKEND_CORS_ORIGINS` is a comma-separated list;
 keep `http://localhost:5173` in it if you still want local frontend dev to
 reach the deployed backend.
+
+`OPENAI_API_KEY` is required for the `POST /api/plans/{plan_id}/ai/command`
+endpoint and must only ever be set on the **backend** Vercel project. Never
+set it on the frontend project and never expose it through
+`VITE_`-prefixed variables — the frontend does not need it and must never see
+it. `OPENAI_MODEL` defaults to `gpt-4.1-mini` and is fully configurable.
 
 Deploy the backend project through the Vercel dashboard or `vercel deploy`
 from `backend/` (do not run this without confirming with the project owner

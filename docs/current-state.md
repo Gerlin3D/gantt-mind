@@ -120,6 +120,35 @@
 - MCP tools do not own business use cases: `find_tasks` delegates to `TaskSearchService`, `validate_plan` delegates to `PlanValidationService`, and `apply_change_set` delegates to `ChangeSetService`.
 - MCP tools do not call the domain scheduler directly and do not query SQLAlchemy directly.
 
+## AI command MVP (Stage 7, minimal)
+
+- `POST /api/plans/{plan_id}/ai/command` accepts `{"message": "..."}` and returns
+  `{"plan": ..., "change_summary": "...", "operations": [...]}`.
+- Backend flow: `AiCommandService` (`app/application/ai_command_service.py`) loads
+  the plan snapshot, builds a compact context, calls `LLMClient.propose_operations`
+  (`app/application/llm_client.py` Protocol, implemented by
+  `app/infrastructure/llm/openai_client.py` using the OpenAI SDK with
+  `response_format={"type": "json_object"}`), validates the raw JSON against
+  `AiOperationProposal` (`app/application/ai_contract.py`), rejects unknown task
+  ids, and applies validated operations through the existing `ChangeSetService`
+  (same domain scheduler/validation/repository path as `apply_change_set`).
+- Supported AI-exposed operations: `shift_tasks`, `change_duration`,
+  `change_assignee`, `add_dependency`, `remove_dependency`. `delete_task` is
+  intentionally excluded from the AI surface for safety; "move task after
+  another task" is expressed as `add_dependency` so the domain scheduler
+  computes dates, not the LLM.
+- Ambiguous/unmappable instructions return `operations: []` and a
+  clarification `change_summary`; no ChangeSet is applied in that case.
+- `OPENAI_API_KEY`/`OPENAI_MODEL` are backend-only settings (`app/config.py`);
+  the frontend never sees the key.
+- Frontend: `AiCommandPanel` (compact panel above the Gantt workspace) with
+  textarea, Send button, loading/error state and local (session-only) message
+  history; `sendAiCommand()` in `plansApi.ts` and `useAiCommand()` in
+  `usePlans.ts`. No chat history is persisted server-side, no streaming, no
+  WebSocket.
+- MCP tools/schemas were not changed; the AI endpoint calls application
+  services directly (`ChangeSetService`), not the MCP runtime.
+
 ## Deployment preview (Vercel + Neon)
 
 Подготовлен deployment-preview по варианту B, без реализации Stage 7 и без новой продуктовой функциональности:
