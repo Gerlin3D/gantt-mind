@@ -167,12 +167,36 @@
 
 ## Этап 6. MCP server
 
+Статус: completed; repeat independent Verify Stage passed with non-blocking issues.
+
 - MCP configuration.
 - MCP resources.
 - MCP tools.
 - `apply_change_set`.
 - Проверка через MCP Inspector.
 - Integration tests.
+
+Implemented scope:
+
+- Python MCP SDK dependency and `npm run backend:mcp` command.
+- MCP server entry point in `app.mcp.server`.
+- MCP resource `ganttmind://plans/demo`.
+- MCP tools: `get_plan_snapshot`, `find_tasks`, `validate_plan`, `apply_change_set`.
+- Application service for atomic ChangeSet application.
+- Application services for `find_tasks` and `validate_plan` MCP use cases.
+- ChangeSet persistence table and repository.
+- Strict Pydantic tool input schemas, explicit `apply_change_set` operation schema and structured output/error contract.
+- Integration/unit tests for application service, repository replacement and MCP tools.
+
+Not implemented in Stage 6:
+
+- LLM provider or agent loop.
+- Frontend AI chat panel.
+- Natural-language parsing.
+- WebSocket.
+- Undo.
+- Auth.
+- REST endpoints for manual task editing.
 
 ## Этап 7. LLM agent
 

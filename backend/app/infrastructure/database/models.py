@@ -1,6 +1,7 @@
 from datetime import date, datetime
 
 from sqlalchemy import (
+    JSON,
     CheckConstraint,
     Date,
     DateTime,
@@ -128,4 +129,28 @@ class TaskDependencyModel(Base):
     successor_task: Mapped[TaskModel] = relationship(
         foreign_keys=[successor_task_id],
         back_populates="successor_dependencies",
+    )
+
+
+class ChangeSetModel(Base):
+    __tablename__ = "change_sets"
+    __table_args__ = (
+        Index("ix_change_sets_plan_id", "plan_id"),
+        Index("ix_change_sets_created_at", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    plan_id: Mapped[str] = mapped_column(
+        String(64),
+        ForeignKey("plans.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    source: Mapped[str] = mapped_column(String(64), nullable=False)
+    user_request: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    operations: Mapped[list[dict[str, object]]] = mapped_column(JSON, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="applied")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
     )

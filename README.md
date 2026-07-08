@@ -110,6 +110,15 @@ Demo plan endpoint:
 curl http://localhost:8000/api/plans/demo
 ```
 
+Start the MCP server for local inspector/client checks:
+
+```bash
+npm run backend:mcp
+```
+
+MCP uses the same `DATABASE_URL` as the backend API. Available Stage 6 tools are
+`get_plan_snapshot`, `find_tasks`, `validate_plan`, and `apply_change_set`.
+
 ## Excel Import/Export
 
 The frontend has an Excel import dialog and an export button in the read-only
@@ -165,6 +174,7 @@ npm run backend:typecheck
 npm run backend:test
 npm run backend:migrate
 npm run backend:seed
+npm run backend:mcp
 ```
 
 Aggregate scripts are also available:

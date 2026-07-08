@@ -43,6 +43,18 @@
   - sample workbook `examples/gantt-mind-sample.xlsx`;
   - frontend import modal and export button;
   - import/export and round-trip tests.
+- MCP adapter layer:
+  - Python MCP SDK dependency;
+  - `npm run backend:mcp` command;
+  - MCP resource `ganttmind://plans/demo`;
+  - MCP tools `get_plan_snapshot`, `find_tasks`, `validate_plan` and `apply_change_set`;
+  - strict Pydantic input schemas with explicit `apply_change_set` operation models;
+  - stable structured result/error contract;
+  - application-level `TaskSearchService` and `PlanValidationService` for MCP query/validation use cases;
+  - application-level ChangeSet service;
+  - ChangeSet persistence table and repository;
+  - atomic plan snapshot replacement for `apply_change_set`;
+  - tests for application service, repository replacement and MCP tool behavior.
 
 ## Частично реализовано
 
@@ -50,12 +62,11 @@
 
 ## Не реализовано
 
-- MCP server.
 - LLM agent.
 - Chat frontend.
 - Undo.
 - Редактирование задач и сохранение изменений из UI.
-- ChangeSet.
+- REST endpoints for manual task editing.
 
 ## Известные ограничения
 
@@ -73,6 +84,10 @@
 - Excel import использует ограничение размера `MAX_EXCEL_UPLOAD_BYTES=5242880`.
 - Stage 5 прошёл независимую проверку через `$verify-stage` и считается completed.
 - Browser-console automation остаётся некритичным ограничением проверки: `playwright`, `chrome` и `msedge` не найдены в текущем shell-окружении.
+- Stage 6 implements MCP tools but not LLM provider logic, chat UI, natural-language parsing, WebSocket, auth or Undo.
+- Stage 6 `apply_change_set` supports a safe MVP operation set: `shift_tasks`, `change_duration`, `change_assignee`, `add_dependency`, `remove_dependency` and `delete_task`. `add_task` and broad `update_task` remain outside this stage.
+- Stage 6 Verify blockers were fixed after the initial `FAIL`: MCP validation/search use cases now go through application services, and `apply_change_set.operations` is no longer published as a free `additionalProperties: true` object schema.
+- Stage 6 passed repeat independent `$verify-stage` with `PASS WITH ISSUES`; remaining issues are non-blocking environment/tooling notes.
 
 ## Принятые решения
 
@@ -101,13 +116,16 @@
 - `python-multipart` используется только на FastAPI boundary.
 - Excel import contract и validation errors находятся в application layer, чтобы application service не зависел от infrastructure Excel adapters.
 - Direction of dependencies checked after Verify Stage: application layer не импортирует SQLAlchemy repository, database session или concrete infrastructure implementations.
+- MCP tools call application services through a runtime protocol. SQLAlchemy session/repository composition lives in infrastructure, not inside tool functions.
+- MCP tools do not own business use cases: `find_tasks` delegates to `TaskSearchService`, `validate_plan` delegates to `PlanValidationService`, and `apply_change_set` delegates to `ChangeSetService`.
+- MCP tools do not call the domain scheduler directly and do not query SQLAlchemy directly.
 
 ## Следующий этап
 
 Этап 4 прошёл независимую проверку через `$verify-stage` и считается completed.
 Этап 5 прошёл независимую проверку через `$verify-stage` и считается completed.
 
-Следующий development stage определяется по `docs/development-roadmap.md`: этап 6, MCP server.
+Следующий development stage определяется по `docs/development-roadmap.md`: Stage 7 LLM agent.
 
 ## Как запустить и проверить текущую версию
 
@@ -145,21 +163,27 @@
    npm run backend:seed
    ```
 
-5. Запустить backend:
+5. Запустить long-running MCP server, если нужна MCP-проверка:
+
+   ```bash
+   npm run backend:mcp
+   ```
+
+6. Запустить backend:
 
    ```bash
    npm run dev:backend
    ```
 
-6. Запустить frontend:
+7. Запустить frontend:
 
    ```bash
    npm run dev:frontend
    ```
 
-7. Открыть `http://localhost:5173`.
+8. Открыть `http://localhost:5173`.
 
-8. Проверить команды:
+9. Проверить команды:
 
    ```bash
    npm run frontend:lint
@@ -233,3 +257,19 @@
 - `where.exe playwright`, `where.exe chrome`, `where.exe msedge` — browser automation commands не найдены.
 
 Browser-console automation остаётся некритичным ограничением проверки этапа 5.
+
+## Фактически выполненные проверки этапа 6
+
+- `npm.cmd run backend:lint` — успешно, ruff: all checks passed.
+- `npm.cmd run backend:typecheck` — успешно, mypy: no issues found in 60 source files.
+- `npm.cmd run backend:test` — успешно, 81 tests passed; остаётся некритический `StarletteDeprecationWarning`.
+- `npm.cmd run lint` — успешно, frontend ESLint и backend ruff прошли.
+- `npm.cmd run typecheck` — успешно, frontend TypeScript и backend mypy прошли.
+- `npm.cmd run test` — успешно, frontend 30 tests passed, backend 81 tests passed; остаётся некритический `StarletteDeprecationWarning`.
+- `npm.cmd run build` — успешно, frontend production build completed.
+- `npm.cmd run backend:migrate` — успешно, Alembic применил `0002_create_change_sets` на PostgreSQL.
+- `uv run --project backend python -c "import app.mcp.server as server; print(type(server.mcp).__name__)"` — успешно, MCP server module loads as `FastMCP`.
+- `npm.cmd exec --yes @modelcontextprotocol/inspector -- --cli --transport stdio --method tools/list -- npm.cmd run backend:mcp` — успешно после повторного запуска вне sandbox; Inspector вернул tools `get_plan_snapshot`, `find_tasks`, `validate_plan`, `apply_change_set`. `apply_change_set.operations.items` использует `oneOf` и discriminator `type`, operation definitions имеют `additionalProperties: false`.
+- `npm.cmd exec --yes @modelcontextprotocol/inspector -- --cli --transport stdio --method resources/list -- npm.cmd run backend:mcp` — успешно после запуска вне sandbox; Inspector вернул resource `ganttmind://plans/demo`.
+
+Первый запуск MCP Inspector внутри sandbox завершился `EACCES` при доступе npm к registry/cache; повторный запуск вне sandbox прошёл успешно.

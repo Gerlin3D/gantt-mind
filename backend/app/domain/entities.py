@@ -1,8 +1,10 @@
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Literal
 
 DependencyType = Literal["finish_to_start"]
+ChangeSetStatus = Literal["applied"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,3 +39,14 @@ class Plan:
     dependencies: tuple[TaskDependency, ...] = ()
     created_at: datetime | None = None
     updated_at: datetime | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ChangeSet:
+    id: str
+    plan_id: str
+    source: str
+    operations: tuple[Mapping[str, object], ...]
+    status: ChangeSetStatus = "applied"
+    user_request: str | None = None
+    created_at: datetime | None = None

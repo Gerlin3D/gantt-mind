@@ -46,3 +46,28 @@ def test_orm_domain_mapping_preserves_snapshot(db_session: Session, sample_plan:
     saved = repository.save(sample_plan)
 
     assert saved == repository.get_snapshot(sample_plan.id)
+
+
+def test_replace_updates_existing_plan_snapshot(db_session: Session, sample_plan: Plan) -> None:
+    repository = SQLAlchemyPlanRepository(db_session)
+    repository.save(sample_plan)
+    db_session.commit()
+
+    updated = Plan(
+        id=sample_plan.id,
+        name="Updated plan",
+        start_date=sample_plan.start_date,
+        version=sample_plan.version + 1,
+        tasks=(sample_plan.tasks[0],),
+        dependencies=(),
+    )
+
+    saved = repository.replace(updated)
+    db_session.commit()
+    loaded = repository.get_snapshot(sample_plan.id)
+
+    assert saved.name == "Updated plan"
+    assert loaded is not None
+    assert loaded.version == 2
+    assert [task.id for task in loaded.tasks] == ["task-1"]
+    assert loaded.dependencies == ()

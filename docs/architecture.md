@@ -213,6 +213,45 @@ Rules:
 - Application services depend on repository contracts and domain logic; they do not import SQLAlchemy repositories, database sessions or concrete Excel infrastructure implementations.
 - API/adapters compose concrete infrastructure dependencies and call the Excel exporter for `.xlsx` responses.
 
+## MCP adapter
+
+Stage 6 adds a real MCP adapter layer without introducing LLM provider logic.
+
+MCP flow:
+
+```text
+MCP client / Inspector
+-> app.mcp.server tool registration
+-> app.mcp.tools input validation and error mapping
+-> app.mcp.runtime protocol
+-> application service
+-> domain operations / scheduler and repository contracts
+-> infrastructure repositories
+-> PostgreSQL
+```
+
+Rules:
+
+- MCP tools are adapter functions. They validate structured input, call runtime/application services and return structured output.
+- MCP tools do not import SQLAlchemy, create database sessions, execute SQL or calculate schedule dates.
+- `find_tasks` is an application use case implemented by `TaskSearchService`; infrastructure runtime only composes the concrete repository and calls the service.
+- `validate_plan` is an application use case implemented by `PlanValidationService`; it loads the plan through the repository contract, calls domain scheduler/validation and returns a structured validation result.
+- `apply_change_set` is orchestrated by `ChangeSetService` in the application layer.
+- Business rules remain in domain operations and scheduler.
+- SQLAlchemy session composition lives in `app.infrastructure.mcp.runtime`.
+- `change_sets` records applied MCP changes, but Undo and previous-state restore remain Stage 9 scope.
+- Public MCP `apply_change_set.operations` schema uses explicit discriminated Pydantic operation models with `Literal` operation types and forbidden extra fields; it is not exposed as free-form `Mapping[str, object]`.
+
+Stage 6 MCP surface:
+
+- resource `ganttmind://plans/demo`;
+- tool `get_plan_snapshot`;
+- tool `find_tasks`;
+- tool `validate_plan`;
+- tool `apply_change_set`.
+
+Stage 6 deliberately excludes LLM provider SDKs, agent prompts, frontend chat, natural-language parsing, WebSocket, auth and Undo.
+
 ## Решения этапа 1
 
 - Root `package.json` управляет frontend workspace и общими командами.
@@ -259,3 +298,11 @@ Rules:
 - Routing не добавлен: для одного imported-plan перехода достаточно active query key без отдельной routing системы.
 - После Verify Stage direction of dependencies уточнён: Excel import contract/errors перенесены в application layer, а exporter вызывается из API adapter.
 - Excel, MCP, LLM, AI chat, ChangeSet, drag-and-drop editing and manual task editing остаются разделёнными по этапам.
+
+## Stage 6 decisions
+
+- The official Python MCP SDK is used for the server entry point and tool/resource registration.
+- MCP input/output schemas are Pydantic models in the adapter layer; they are separate from REST DTO and domain entities.
+- `apply_change_set` supports a safe MVP set of structured operations: `shift_tasks`, `change_duration`, `change_assignee`, `add_dependency`, `remove_dependency` and `delete_task`.
+- Application services own orchestration and version checks; MCP tools only map inputs and errors.
+- `change_sets` persists applied changes for audit/continuity, while Undo behavior is deferred to Stage 9.

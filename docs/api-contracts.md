@@ -148,3 +148,119 @@ POST   /api/plans/{plan_id}/undo
 ```
 
 Планируемые endpoints будут уточняться на этапах 7, 8 и 9.
+
+## MCP contracts
+
+Stage 6 MCP tools return a stable structured envelope:
+
+```json
+{
+  "ok": true,
+  "data": {},
+  "error": null
+}
+```
+
+Error response:
+
+```json
+{
+  "ok": false,
+  "data": null,
+  "error": {
+    "code": "plan_not_found",
+    "message": "Plan was not found: missing",
+    "details": {
+      "plan_id": "missing"
+    }
+  }
+}
+```
+
+### Resource `ganttmind://plans/demo`
+
+Returns the same structured envelope as `get_plan_snapshot` for `demo-plan`.
+
+### Tool `get_plan_snapshot`
+
+Input:
+
+```json
+{
+  "plan_id": "demo-plan"
+}
+```
+
+Success `data` contains `plan` with the same snapshot fields as `GET /api/plans/{plan_id}`.
+
+### Tool `find_tasks`
+
+Input:
+
+```json
+{
+  "plan_id": "demo-plan",
+  "query": "API",
+  "assignee": null,
+  "limit": 20
+}
+```
+
+Success `data` contains `tasks` and `total`.
+
+### Tool `validate_plan`
+
+Input:
+
+```json
+{
+  "plan_id": "demo-plan"
+}
+```
+
+Success `data` contains `valid`, `errors` and `plan`.
+
+### Tool `apply_change_set`
+
+Input:
+
+```json
+{
+  "plan_id": "demo-plan",
+  "expected_version": 1,
+  "operations": [
+    {
+      "type": "shift_tasks",
+      "task_ids": ["discovery"],
+      "offset_days": 1
+    }
+  ],
+  "user_request": "Move discovery one day later."
+}
+```
+
+Supported Stage 6 operations:
+
+- `shift_tasks`;
+- `change_duration`;
+- `change_assignee`;
+- `add_dependency`;
+- `remove_dependency`;
+- `delete_task`.
+
+The public MCP schema for `operations` is a discriminated union keyed by `type`.
+Each operation has explicit required fields, `Literal` operation type values and
+forbids extra properties. `operations.items` must not be exposed as a free-form
+object with `additionalProperties: true`.
+
+Success `data` contains `change_set_id`, updated `plan`, `applied_operations` and `description`.
+
+Errors use these codes:
+
+- `invalid_input`;
+- `plan_not_found`;
+- `version_conflict`;
+- `invalid_change_set`;
+- `domain_validation_error`;
+- `application_error`;
+- `repository_error`.
