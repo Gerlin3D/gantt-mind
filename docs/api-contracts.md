@@ -141,10 +141,10 @@ Verification status: export was checked on real PostgreSQL during Stage 5 Verify
 
 ### POST /api/plans/{plan_id}/ai/command
 
-Sends a natural-language instruction to the backend, which asks the OpenAI
-provider for a strict JSON operation proposal and applies it through the
-existing ChangeSet pipeline (same domain validation/scheduler/repository path
-as MCP `apply_change_set`).
+Sends a natural-language instruction to the backend, which asks an OpenRouter
+model (via the OpenAI-compatible client) for a strict JSON operation proposal
+and applies it through the existing ChangeSet pipeline (same domain
+validation/scheduler/repository path as MCP `apply_change_set`).
 
 Request:
 
@@ -186,12 +186,12 @@ Error responses (`detail` message, no raw traceback):
 - `422` — empty/blank `message`, or the AI provider returned output that is
   not valid JSON or does not match the expected schema (including unknown
   task ids).
-- `502` — missing `OPENAI_API_KEY` or an AI provider request failure.
+- `502` — missing `OPENROUTER_API_KEY` or an AI provider request failure.
 - `409` — plan version conflict (concurrent update).
 - `400` — domain/ChangeSet validation error (e.g. invalid duration).
 
-`OPENAI_API_KEY` must be set only on the backend; the frontend never receives
-it or the model name.
+`OPENROUTER_API_KEY` must be set only on the backend; the frontend never
+receives it or the model name.
 
 ## Planned endpoints
 

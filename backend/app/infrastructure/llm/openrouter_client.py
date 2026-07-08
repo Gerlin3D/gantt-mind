@@ -35,23 +35,40 @@ predecessor and the later task as successor.
 """.format(allowed_operations=", ".join(ALLOWED_AI_OPERATIONS))
 
 
-class OpenAILLMClient:
-    def __init__(self, api_key: str, model: str) -> None:
+class OpenRouterLLMClient:
+    def __init__(
+        self,
+        api_key: str,
+        model: str,
+        base_url: str,
+        site_url: str = "",
+        app_name: str = "",
+    ) -> None:
         self._api_key = api_key
         self._model = model
+        self._base_url = base_url
+        self._site_url = site_url
+        self._app_name = app_name
 
     def propose_operations(self, *, plan_context: Mapping[str, object], message: str) -> str:
         if not self._api_key:
-            raise LlmProviderError("OPENAI_API_KEY is not configured on the backend.")
+            raise LlmProviderError("OPENROUTER_API_KEY is not configured on the backend.")
 
         user_content = json.dumps({"plan": plan_context, "instruction": message})
-        client = OpenAI(api_key=self._api_key)
+        client = OpenAI(api_key=self._api_key, base_url=self._base_url)
+
+        extra_headers: dict[str, str] = {}
+        if self._site_url:
+            extra_headers["HTTP-Referer"] = self._site_url
+        if self._app_name:
+            extra_headers["X-Title"] = self._app_name
 
         try:
             response = client.chat.completions.create(
                 model=self._model,
                 temperature=0,
                 response_format={"type": "json_object"},
+                extra_headers=extra_headers or None,
                 messages=[
                     {"role": "system", "content": _SYSTEM_PROMPT},
                     {"role": "user", "content": user_content},

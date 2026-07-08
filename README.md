@@ -158,11 +158,12 @@ The default upload limit is configured by `MAX_EXCEL_UPLOAD_BYTES` and is set to
 ## AI command (MVP)
 
 The Gantt workspace has a compact AI panel that sends a natural-language
-instruction to the backend, which asks OpenAI for a strict JSON operation
-proposal and applies it through the existing ChangeSet pipeline. The LLM
-never touches the database, calculates dates, or bypasses domain validation.
+instruction to the backend, which asks an OpenRouter model (through the
+OpenAI-compatible client) for a strict JSON operation proposal and applies it
+through the existing ChangeSet pipeline. The LLM never touches the database,
+calculates dates, or bypasses domain validation.
 
-Set `OPENAI_API_KEY` (and optionally `OPENAI_MODEL`) locally to try it:
+Set `OPENROUTER_API_KEY` (and optionally `OPENROUTER_MODEL`) locally to try it:
 
 ```bash
 curl -X POST http://localhost:8000/api/plans/demo-plan/ai/command \
@@ -240,8 +241,11 @@ Environment variables:
 ```env
 DATABASE_URL=postgresql+psycopg://user:password@host/database?sslmode=require
 BACKEND_CORS_ORIGINS=https://your-frontend.vercel.app,http://localhost:5173
-OPENAI_API_KEY=
-OPENAI_MODEL=gpt-4.1-mini
+OPENROUTER_API_KEY=
+OPENROUTER_MODEL=openai/gpt-4.1-mini
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+OPENROUTER_SITE_URL=
+OPENROUTER_APP_NAME=GanttMind
 ```
 
 Use the Neon pooled connection string for `DATABASE_URL` and keep the
@@ -250,11 +254,15 @@ SQLAlchemy in this project). `BACKEND_CORS_ORIGINS` is a comma-separated list;
 keep `http://localhost:5173` in it if you still want local frontend dev to
 reach the deployed backend.
 
-`OPENAI_API_KEY` is required for the `POST /api/plans/{plan_id}/ai/command`
+`OPENROUTER_API_KEY` is required for the `POST /api/plans/{plan_id}/ai/command`
 endpoint and must only ever be set on the **backend** Vercel project. Never
 set it on the frontend project and never expose it through
 `VITE_`-prefixed variables — the frontend does not need it and must never see
-it. `OPENAI_MODEL` defaults to `gpt-4.1-mini` and is fully configurable.
+it. `OPENROUTER_MODEL` defaults to `openai/gpt-4.1-mini` and is fully
+configurable; `OPENROUTER_BASE_URL` defaults to the OpenRouter API and
+normally does not need to change. `OPENROUTER_SITE_URL`/`OPENROUTER_APP_NAME`
+are optional and, if set, are sent as `HTTP-Referer`/`X-Title` headers
+(OpenRouter uses these for app attribution).
 
 Deploy the backend project through the Vercel dashboard or `vercel deploy`
 from `backend/` (do not run this without confirming with the project owner

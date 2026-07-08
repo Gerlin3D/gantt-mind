@@ -21,7 +21,7 @@ from app.application.plan_repository import PlanRepository
 from app.config import Settings, get_settings
 from app.domain.exceptions import DomainError
 from app.infrastructure.database.session import get_session
-from app.infrastructure.llm.openai_client import OpenAILLMClient
+from app.infrastructure.llm.openrouter_client import OpenRouterLLMClient
 from app.infrastructure.repositories.sqlalchemy_change_set_repository import (
     SQLAlchemyChangeSetRepository,
 )
@@ -54,7 +54,13 @@ def get_change_set_repository(
 
 
 def get_llm_client(settings: Annotated[Settings, Depends(get_settings)]) -> LLMClient:
-    return OpenAILLMClient(api_key=settings.openai_api_key, model=settings.openai_model)
+    return OpenRouterLLMClient(
+        api_key=settings.openrouter_api_key,
+        model=settings.openrouter_model,
+        base_url=settings.openrouter_base_url,
+        site_url=settings.openrouter_site_url,
+        app_name=settings.openrouter_app_name,
+    )
 
 
 def get_ai_command_service(

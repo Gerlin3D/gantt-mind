@@ -127,7 +127,8 @@
 - Backend flow: `AiCommandService` (`app/application/ai_command_service.py`) loads
   the plan snapshot, builds a compact context, calls `LLMClient.propose_operations`
   (`app/application/llm_client.py` Protocol, implemented by
-  `app/infrastructure/llm/openai_client.py` using the OpenAI SDK with
+  `app/infrastructure/llm/openrouter_client.py` — `OpenRouterLLMClient` uses the
+  OpenAI-compatible SDK pointed at OpenRouter's `base_url` with
   `response_format={"type": "json_object"}`), validates the raw JSON against
   `AiOperationProposal` (`app/application/ai_contract.py`), rejects unknown task
   ids, and applies validated operations through the existing `ChangeSetService`
@@ -139,8 +140,12 @@
   computes dates, not the LLM.
 - Ambiguous/unmappable instructions return `operations: []` and a
   clarification `change_summary`; no ChangeSet is applied in that case.
-- `OPENAI_API_KEY`/`OPENAI_MODEL` are backend-only settings (`app/config.py`);
-  the frontend never sees the key.
+- `OPENROUTER_API_KEY`/`OPENROUTER_MODEL`/`OPENROUTER_BASE_URL`/
+  `OPENROUTER_SITE_URL`/`OPENROUTER_APP_NAME` are backend-only settings
+  (`app/config.py`); the frontend never sees the key. The provider was
+  switched from a direct OpenAI config to OpenRouter (OpenAI-compatible
+  client with a custom `base_url`) because only an OpenRouter key is
+  available for this deployment.
 - Frontend: `AiCommandPanel` (compact panel above the Gantt workspace) with
   textarea, Send button, loading/error state and local (session-only) message
   history; `sendAiCommand()` in `plansApi.ts` and `useAiCommand()` in
