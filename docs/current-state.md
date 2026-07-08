@@ -120,10 +120,36 @@
 - MCP tools do not own business use cases: `find_tasks` delegates to `TaskSearchService`, `validate_plan` delegates to `PlanValidationService`, and `apply_change_set` delegates to `ChangeSetService`.
 - MCP tools do not call the domain scheduler directly and do not query SQLAlchemy directly.
 
+## Deployment preview (Vercel + Neon)
+
+Подготовлен deployment-preview по варианту B, без реализации Stage 7 и без новой продуктовой функциональности:
+
+```text
+Frontend: Vercel
+Backend FastAPI: Vercel
+Database: Neon/external managed PostgreSQL
+MCP: local only for current preview
+Migrations/seed: explicit commands, not request-time automation
+```
+
+- `backend/index.py` — Vercel Python entrypoint, реэкспортирует существующий `app.main:app` без дублирования FastAPI-приложения.
+- `backend/vercel.json` — минимальный `@vercel/python` build/route config.
+- `backend/requirements.txt` — runtime-зависимости для Vercel Python builder (`fastapi`, `psycopg[binary]`, `pydantic-settings`, `python-multipart`, `sqlalchemy`, `openpyxl`); `alembic`, `mcp` и `uvicorn` не включены, так как не импортируются `app.main` и не нужны в serverless-рантайме.
+- `backend/.vercelignore` — исключает `tests/` и кэши/`.venv/` из backend bundle.
+- CORS origins читаются из `BACKEND_CORS_ORIGINS` (comma-separated), а не хардкодятся; CORS middleware дополнительно отдаёт `expose_headers=["Content-Disposition"]`, чтобы cross-origin frontend мог прочитать имя файла при экспорте.
+- `DATABASE_URL` и `VITE_API_BASE_URL` уже были env-driven и не потребовали изменений в коде; в `.env.example` добавлены только placeholder-примеры для Neon/Vercel, без секретов.
+- Excel import/export уже полностью in-memory (`BytesIO`), файлы на диск не пишутся при request — совместимо с serverless без изменений.
+- Migrations и seed остаются явными operator-командами и не запускаются при импорте приложения, при FastAPI startup или на каждый request.
+- MCP server остаётся локальным процессом и не входит в Vercel deployment.
+
+Реальный `vercel deploy` в рамках этой подготовки не выполнялся.
+
 ## Следующий этап
 
 Этап 4 прошёл независимую проверку через `$verify-stage` и считается completed.
 Этап 5 прошёл независимую проверку через `$verify-stage` и считается completed.
+
+Deployment preview (Vercel + Neon) подготовлен без запуска Stage 7.
 
 Следующий development stage определяется по `docs/development-roadmap.md`: Stage 7 LLM agent.
 

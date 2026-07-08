@@ -299,6 +299,24 @@ Stage 6 deliberately excludes LLM provider SDKs, agent prompts, frontend chat, n
 - После Verify Stage direction of dependencies уточнён: Excel import contract/errors перенесены в application layer, а exporter вызывается из API adapter.
 - Excel, MCP, LLM, AI chat, ChangeSet, drag-and-drop editing and manual task editing остаются разделёнными по этапам.
 
+## Deployment architecture (Vercel preview)
+
+```text
+Frontend: Vercel
+Backend FastAPI: Vercel
+Database: Neon/external managed PostgreSQL
+MCP: local only for current preview
+Migrations/seed: explicit commands, not request-time automation
+```
+
+- Frontend deploys as its own Vercel project (Root Directory `frontend`, Build Command `npm run build`, Output Directory `dist`) and reaches the backend through `VITE_API_BASE_URL`.
+- Backend FastAPI deploys as a separate Vercel project (Root Directory `backend`) through `backend/index.py`, a thin Vercel Python entrypoint that imports the existing `app.main:app` without duplicating the FastAPI application or creating a `backend/app.py`/`backend/app` package conflict.
+- `backend/vercel.json` configures the `@vercel/python` builder; `backend/requirements.txt` lists runtime dependencies for that builder, since it does not read `pyproject.toml`/`uv.lock`.
+- Database is external managed PostgreSQL (Neon for preview), reached through the existing `DATABASE_URL` setting; no schema or driver changes were needed.
+- CORS origins are read from `BACKEND_CORS_ORIGINS` (comma-separated) instead of being hardcoded, and the CORS middleware exposes `Content-Disposition` so a cross-origin frontend can read the export filename from the response.
+- MCP stays a local-only process (`npm run backend:mcp`) and is not part of the Vercel deployment.
+- Migrations and seed remain explicit operator commands; they are not triggered by app import, FastAPI startup, or request handling.
+
 ## Stage 6 decisions
 
 - The official Python MCP SDK is used for the server entry point and tool/resource registration.

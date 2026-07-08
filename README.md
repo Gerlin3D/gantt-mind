@@ -185,3 +185,103 @@ npm run typecheck
 npm run test
 npm run build
 ```
+
+## Deployment preview
+
+This is an early preview deployment split across two Vercel projects plus an
+external managed Postgres database. The MCP server is not part of this
+deployment; it stays local (see below).
+
+```text
+Frontend        -> Vercel project #1 (Root Directory: frontend)
+Backend FastAPI -> Vercel project #2 (Root Directory: backend)
+Database        -> Neon PostgreSQL (or another managed Postgres)
+MCP server      -> local only, not deployed
+```
+
+### 1. Create a Neon database
+
+Create a free Neon project and database, then copy the **pooled** connection
+string (Neon dashboard -> Connection Details -> "Pooled connection"). Pooled
+connections are recommended for serverless functions, which open a new
+connection per cold start.
+
+### 2. Backend Vercel project
+
+Create a Vercel project with:
+
+- Root Directory: `backend`
+- Framework preset: Other (the project ships its own `backend/vercel.json`
+  and `backend/index.py` entrypoint for `@vercel/python`)
+
+Environment variables:
+
+```env
+DATABASE_URL=postgresql+psycopg://user:password@host/database?sslmode=require
+BACKEND_CORS_ORIGINS=https://your-frontend.vercel.app,http://localhost:5173
+```
+
+Use the Neon pooled connection string for `DATABASE_URL` and keep the
+`postgresql+psycopg://` scheme (matches the `psycopg` 3 driver used by
+SQLAlchemy in this project). `BACKEND_CORS_ORIGINS` is a comma-separated list;
+keep `http://localhost:5173` in it if you still want local frontend dev to
+reach the deployed backend.
+
+Deploy the backend project through the Vercel dashboard or `vercel deploy`
+from `backend/` (do not run this without confirming with the project owner
+first).
+
+### 3. Run migrations and seed against Neon
+
+Run these explicitly from your machine after the backend project has a
+reachable `DATABASE_URL`. Migrations and seed are never run automatically at
+import time, at FastAPI startup, or per request.
+
+```powershell
+$env:DATABASE_URL='<remote-neon-pooled-url>'
+npm.cmd run backend:migrate
+npm.cmd run backend:seed
+```
+
+### 4. Verify the backend
+
+```bash
+curl https://your-backend.vercel.app/api/health
+curl https://your-backend.vercel.app/api/plans/demo
+```
+
+### 5. Frontend Vercel project
+
+Create a second Vercel project with:
+
+- Root Directory: `frontend`
+- Build Command: `npm run build`
+- Output Directory: `dist`
+
+Environment variable:
+
+```env
+VITE_API_BASE_URL=https://your-backend.vercel.app
+```
+
+`VITE_API_BASE_URL` is a build-time variable; set it in the Vercel project
+settings before deploying so the production bundle never falls back to
+`localhost`.
+
+Deploy the frontend project through the Vercel dashboard or `vercel deploy`
+from `frontend/` (do not run this without confirming with the project owner
+first).
+
+### 6. Verify the deployed app
+
+- Open the frontend Gantt page and confirm the demo plan loads.
+- Import a workbook (`npm run backend:generate-sample` produces a sample
+  file) and confirm the imported plan renders.
+- Export a plan and confirm the downloaded `.xlsx` opens and matches the
+  plan.
+
+### MCP scope
+
+The MCP server (`npm run backend:mcp`) is not deployed as part of this
+preview. It remains a local-only process for Inspector/client checks against
+the same `DATABASE_URL`.
