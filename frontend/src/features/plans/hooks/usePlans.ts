@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
-import { getDemoPlan, getPlanById } from '../api/plansApi';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { exportPlan, getDemoPlan, getPlanById, importPlan } from '../api/plansApi';
 
 export const planQueryKeys = {
   demo: ['plans', 'demo'] as const,
@@ -18,5 +18,17 @@ export function usePlan(planId: string) {
     queryKey: planQueryKeys.byId(planId),
     queryFn: () => getPlanById(planId),
     enabled: planId.length > 0,
+  });
+}
+
+export function useImportPlan() {
+  return useMutation({
+    mutationFn: importPlan,
+  });
+}
+
+export function useExportPlan() {
+  return useMutation({
+    mutationFn: exportPlan,
   });
 }

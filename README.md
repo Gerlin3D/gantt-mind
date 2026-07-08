@@ -110,6 +110,42 @@ Demo plan endpoint:
 curl http://localhost:8000/api/plans/demo
 ```
 
+## Excel Import/Export
+
+The frontend has an Excel import dialog and an export button in the read-only
+Gantt workspace.
+
+Supported import format is `.xlsx` with a `Tasks` worksheet and these columns:
+
+- `task` - required unique task name.
+- `description` - optional.
+- `assignee` - optional.
+- `duration` - required positive integer calendar-day duration.
+- `predecessors` - optional `;`-separated task names.
+
+Generate the sample workbook:
+
+```bash
+npm run backend:generate-sample
+```
+
+The sample is written to `examples/gantt-mind-sample.xlsx`.
+
+Download the sample through the API:
+
+```bash
+curl -o gantt-mind-sample.xlsx http://localhost:8000/api/plans/import/sample
+```
+
+Export a plan:
+
+```bash
+curl -OJ http://localhost:8000/api/plans/demo-plan/export
+```
+
+The default upload limit is configured by `MAX_EXCEL_UPLOAD_BYTES` and is set to
+5 MB in `.env.example`.
+
 ## Checks
 
 Frontend:

@@ -33,6 +33,16 @@
   - loading, error и empty states.
 - Date-only frontend utilities без опасного timezone shift от `new Date("YYYY-MM-DD")`.
 - Frontend tests для API client, date utilities, PlanPage states, task rendering, Gantt bar calculations, dependency rendering и drawer interaction.
+- Excel import/export:
+  - `POST /api/plans/import`;
+  - `GET /api/plans/{plan_id}/export`;
+  - `GET /api/plans/import/sample`;
+  - `.xlsx` parser and exporter based on `openpyxl`;
+  - structured validation report;
+  - file size limit `5 MB`;
+  - sample workbook `examples/gantt-mind-sample.xlsx`;
+  - frontend import modal and export button;
+  - import/export and round-trip tests.
 
 ## Частично реализовано
 
@@ -40,7 +50,6 @@
 
 ## Не реализовано
 
-- Excel import/export.
 - MCP server.
 - LLM agent.
 - Chat frontend.
@@ -59,6 +68,11 @@
 - В текущей среде локальный PostgreSQL compose используется через host-порт `55432`; `.env.example` остаётся воспроизводимым с default `5432`.
 - Stage 4 frontend не реализует редактирование, drag-and-drop, resize bars, optimistic updates, Excel, MCP, LLM, AI chat или ChangeSet.
 - Автоматическая browser-console проверка этапа 4 не выполнена: в текущей среде не найдены Playwright/browser commands; UI behavior проверен через Vitest/jsdom tests.
+- Stage 5 реализует только `.xlsx` import/export; CSV, Google Sheets и Excel Gantt rendering не поддерживаются.
+- Excel import отклоняет formulas, неизвестных predecessors, self-dependencies, duplicate tasks, invalid durations и malformed workbooks.
+- Excel import использует ограничение размера `MAX_EXCEL_UPLOAD_BYTES=5242880`.
+- Stage 5 прошёл независимую проверку через `$verify-stage` и считается completed.
+- Browser-console automation остаётся некритичным ограничением проверки: `playwright`, `chrome` и `msedge` не найдены в текущем shell-окружении.
 
 ## Принятые решения
 
@@ -80,12 +94,20 @@
 - Timeline header прокручивается горизонтально только вместе с правой timeline.
 - SVG dependency layer находится внутри timeline content и движется только вместе с правой частью.
 - Dependency arrows используют мягкие SVG paths с коротким финальным горизонтальным сегментом и заметными arrowheads.
+- Excel parser/exporter являются infrastructure adapters и не входят в domain layer.
+- Excel import создаёт новый plan через application service, domain scheduler и repository; frontend не рассчитывает даты и не проверяет dependency graph.
+- Excel validation report использует row/column/code/message issues.
+- `openpyxl` выбран для прямой работы с `.xlsx`; `pandas` не добавлен.
+- `python-multipart` используется только на FastAPI boundary.
+- Excel import contract и validation errors находятся в application layer, чтобы application service не зависел от infrastructure Excel adapters.
+- Direction of dependencies checked after Verify Stage: application layer не импортирует SQLAlchemy repository, database session или concrete infrastructure implementations.
 
 ## Следующий этап
 
 Этап 4 прошёл независимую проверку через `$verify-stage` и считается completed.
+Этап 5 прошёл независимую проверку через `$verify-stage` и считается completed.
 
-Следующий development stage должен соответствовать этапу 5 из `docs/development-roadmap.md`: Excel import/export.
+Следующий development stage определяется по `docs/development-roadmap.md`: этап 6, MCP server.
 
 ## Как запустить и проверить текущую версию
 
@@ -182,3 +204,32 @@
 - Некритические замечания:
   - автоматическая browser-console проверка не выполнена из-за отсутствия Playwright/browser commands в текущей среде;
   - disabled-кнопка `Excel` в header является ранним UI affordance без реализации функциональности этапа 5.
+
+## Фактически выполненные проверки этапа 5
+
+- `npm.cmd run backend:lint` — успешно, ruff: all checks passed.
+- `npm.cmd run backend:typecheck` — успешно, mypy: no issues found in 46 source files.
+- `npm.cmd run backend:test` — успешно, 58 tests passed; остаётся некритический `StarletteDeprecationWarning`.
+- `npm.cmd run frontend:lint` — успешно.
+- `npm.cmd run frontend:typecheck` — успешно.
+- `npm.cmd run frontend:test` — успешно, 5 files passed, 30 tests passed.
+- `npm.cmd run frontend:build` — успешно, Vite production build completed.
+- `npm.cmd run lint` — успешно, frontend ESLint и backend ruff прошли.
+- `npm.cmd run typecheck` — успешно, frontend TypeScript и backend mypy прошли.
+- `npm.cmd run test` — успешно, frontend 30 tests passed, backend 58 tests passed; остаётся некритический `StarletteDeprecationWarning`.
+- `npm.cmd run build` — успешно, frontend production build completed.
+- `npm.cmd run backend:generate-sample` — успешно, создан `examples/gantt-mind-sample.xlsx`.
+- `docker compose ps postgres` — успешно после запуска Docker Desktop; `gantt-mind-postgres` healthy, `0.0.0.0:55432->5432/tcp`.
+- `$env:DATABASE_URL='postgresql+psycopg://gantt_mind:gantt_mind@localhost:55432/gantt_mind'; npm.cmd run backend:migrate` — успешно, Alembic использовал `PostgresqlImpl`.
+- `$env:DATABASE_URL='postgresql+psycopg://gantt_mind:gantt_mind@localhost:55432/gantt_mind'; npm.cmd run backend:seed` — успешно, seed идемпотентен: `Demo plan already exists.`
+- Real PostgreSQL API smoke through FastAPI `TestClient` with `DATABASE_URL=postgresql+psycopg://gantt_mind:gantt_mind@localhost:55432/gantt_mind` — успешно:
+  - `GET /api/health` вернул `200`;
+  - `GET /api/plans/demo` вернул `200`, 9 tasks и 9 dependencies;
+  - `GET /api/plans/00000000-0000-0000-0000-000000000000` вернул `404`;
+  - `GET /api/plans/import/sample` вернул `.xlsx`;
+  - `POST /api/plans/import` создал plan с 9 tasks и 9 dependencies;
+  - `GET /api/plans/{created_plan_id}/export` вернул `.xlsx`;
+  - `GET /api/plans/00000000-0000-0000-0000-000000000000/export` вернул `404`.
+- `where.exe playwright`, `where.exe chrome`, `where.exe msedge` — browser automation commands не найдены.
+
+Browser-console automation остаётся некритичным ограничением проверки этапа 5.

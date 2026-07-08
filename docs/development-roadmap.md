@@ -113,12 +113,57 @@
 
 ## Этап 5. Excel import/export
 
+Статус: completed; independent Verify Stage passed with non-blocking issues.
+
 - Загрузка файла.
 - Validation report.
 - Создание плана.
 - Экспорт.
 - `examples/example-plan.xlsx`.
 - Round-trip tests.
+
+Реализовано:
+
+- Backend dependency `openpyxl` для `.xlsx` import/export.
+- Backend dependency `python-multipart` для `multipart/form-data`.
+- Excel parser infrastructure adapter.
+- Excel exporter infrastructure adapter.
+- `POST /api/plans/import`.
+- `GET /api/plans/{plan_id}/export`.
+- `GET /api/plans/import/sample`.
+- Structured validation report with row/column/code/message.
+- File size limit `5 MB`.
+- Atomic import through application service, domain scheduler and repository.
+- Reproducible sample workbook `examples/gantt-mind-sample.xlsx`.
+- Frontend import modal.
+- TanStack Query import mutation.
+- Frontend export download flow.
+- Backend parser, application, API, export and round-trip tests.
+- Frontend import/export API and UI tests.
+
+Проверено:
+
+- Excel import проверен на реальном PostgreSQL через `POST /api/plans/import`.
+- Excel export проверен через `GET /api/plans/{plan_id}/export`.
+- Export → import round trip подтверждён backend tests и PostgreSQL API smoke.
+- Import выполняется атомарно: ошибки workbook/domain validation не сохраняют частичный plan.
+- Sample workbook `examples/gantt-mind-sample.xlsx` соответствует Excel contract.
+- Frontend import/export workflow реализован через TanStack Query mutations.
+- Direction of dependencies checked: application layer не импортирует SQLAlchemy repository, database session или concrete infrastructure implementations.
+- Некритическое ограничение проверки: browser-console automation недоступна в текущем окружении.
+
+Не реализовано на этапе 5:
+
+- MCP server/tools.
+- LLM provider or AI agent.
+- AI chat.
+- Natural-language editing.
+- Manual task editing.
+- Drag-and-drop or resize Gantt bars.
+- ChangeSet.
+- Undo.
+- CSV or Google Sheets integration.
+- Excel Gantt rendering.
 
 ## Этап 6. MCP server
 

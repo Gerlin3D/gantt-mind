@@ -29,6 +29,7 @@
     "backend:migrate": "set \"UV_CACHE_DIR=.uv-cache\"&& set \"UV_PYTHON_INSTALL_DIR=.uv-python\"&& set \"PYTHONPATH=backend\"&& uv run --project backend alembic -c backend/alembic.ini upgrade head",
     "backend:migrate:down": "set \"UV_CACHE_DIR=.uv-cache\"&& set \"UV_PYTHON_INSTALL_DIR=.uv-python\"&& set \"PYTHONPATH=backend\"&& uv run --project backend alembic -c backend/alembic.ini downgrade base",
     "backend:seed": "set \"UV_CACHE_DIR=.uv-cache\"&& set \"UV_PYTHON_INSTALL_DIR=.uv-python\"&& set \"PYTHONPATH=backend\"&& uv run --project backend python -m app.seed",
+    "backend:generate-sample": "set \"UV_CACHE_DIR=.uv-cache\"&& set \"UV_PYTHON_INSTALL_DIR=.uv-python\"&& set \"PYTHONPATH=backend\"&& uv run --project backend python -m app.scripts.generate_sample_workbook",
     "lint": "npm run frontend:lint && npm run backend:lint",
     "typecheck": "npm run frontend:typecheck && npm run backend:typecheck",
     "test": "npm run frontend:test && npm run backend:test",

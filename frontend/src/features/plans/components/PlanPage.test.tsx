@@ -134,6 +134,125 @@ describe('PlanPage', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it('imports a workbook and renders the created plan', async () => {
+    const importedPlan = {
+      ...demoPlanFixture,
+      id: 'imported-plan',
+      name: 'Imported Plan',
+    };
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit): ReturnType<typeof fetch> => {
+      if (String(input).endsWith('/api/plans/import') && init?.method === 'POST') {
+        return Promise.resolve(Response.json(importedPlan, { status: 201 }));
+      }
+      return Promise.resolve(Response.json(demoPlanFixture));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderWithQueryClient(<PlanPage />);
+
+    expect(await screen.findByRole('heading', { name: 'GanttMind Demo Project' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Import Excel' }));
+    fireEvent.change(screen.getByLabelText('Workbook'), {
+      target: {
+        files: [
+          new File(['xlsx'], 'plan.xlsx', {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          }),
+        ],
+      },
+    });
+    fireEvent.change(screen.getByLabelText('Plan name'), { target: { value: 'Imported Plan' } });
+    fireEvent.change(screen.getByLabelText('Start date'), { target: { value: '2026-01-05' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+
+    expect(await screen.findByRole('heading', { name: 'Imported Plan' })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Import Excel' })).not.toBeInTheDocument();
+
+    const [, importInit] = fetchMock.mock.calls.find(([input]) =>
+      String(input).endsWith('/api/plans/import'),
+    ) ?? [];
+    expect(importInit?.body).toBeInstanceOf(FormData);
+  });
+
+  it('shows import row validation errors', async () => {
+    const validationPayload = {
+      code: 'excel_validation_failed',
+      message: 'The workbook contains invalid rows.',
+      errors: [
+        {
+          worksheet: 'Tasks',
+          row: 2,
+          column: 'duration',
+          code: 'invalid_duration',
+          message: 'Duration must be a positive integer.',
+        },
+      ],
+    };
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit): ReturnType<typeof fetch> => {
+      if (String(input).endsWith('/api/plans/import') && init?.method === 'POST') {
+        return Promise.resolve(Response.json(validationPayload, { status: 400 }));
+      }
+      return Promise.resolve(Response.json(demoPlanFixture));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderWithQueryClient(<PlanPage />);
+
+    expect(await screen.findByRole('heading', { name: 'GanttMind Demo Project' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Import Excel' }));
+    fireEvent.change(screen.getByLabelText('Workbook'), {
+      target: { files: [new File(['xlsx'], 'plan.xlsx')] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+
+    expect(await screen.findByText('The workbook contains invalid rows.')).toBeInTheDocument();
+    expect(screen.getByText(/invalid_duration/)).toBeInTheDocument();
+    expect(screen.getByText(/row 2, duration/)).toBeInTheDocument();
+  });
+
+  it('exports the current plan as a downloaded blob', async () => {
+    const createObjectUrl = vi.fn(() => 'blob:plan');
+    const revokeObjectUrl = vi.fn();
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+    vi.stubGlobal('URL', {
+      ...URL,
+      createObjectURL: createObjectUrl,
+      revokeObjectURL: revokeObjectUrl,
+    });
+    const fetchMock = vi.fn((input: RequestInfo | URL): ReturnType<typeof fetch> => {
+      if (String(input).endsWith('/api/plans/demo-plan/export')) {
+        return Promise.resolve(
+          new Response(new Blob(['xlsx']), {
+            headers: {
+              'content-disposition': 'attachment; filename="demo.xlsx"',
+            },
+          }),
+        );
+      }
+      return Promise.resolve(Response.json(demoPlanFixture));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderWithQueryClient(<PlanPage />);
+
+    expect(await screen.findByRole('heading', { name: 'GanttMind Demo Project' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Export Excel' }));
+
+    await waitFor(() => {
+      expect(createObjectUrl).toHaveBeenCalledTimes(1);
+    });
+    expect(revokeObjectUrl).toHaveBeenCalledWith('blob:plan');
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith('http://localhost:8000/api/plans/demo-plan/export', {
+      headers: {
+        Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      },
+    });
+  });
+
   it('shows an empty state for a plan without tasks', async () => {
     mockPlanResponse({ ...demoPlanFixture, tasks: [], dependencies: [] });
 

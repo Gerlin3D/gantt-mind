@@ -3,6 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from app.application.excel_errors import ExcelValidationIssue
 from app.domain.entities import Plan, Task, TaskDependency
 
 
@@ -34,6 +35,20 @@ class PlanResponse(BaseModel):
     dependencies: list[TaskDependencyResponse]
 
 
+class ExcelValidationIssueResponse(BaseModel):
+    worksheet: str | None = None
+    row: int | None = None
+    column: str | None = None
+    code: str
+    message: str
+
+
+class ExcelValidationErrorResponse(BaseModel):
+    code: Literal["excel_validation_failed"] = "excel_validation_failed"
+    message: str
+    errors: list[ExcelValidationIssueResponse]
+
+
 def task_to_response(task: Task) -> TaskResponse:
     return TaskResponse(
         id=task.id,
@@ -63,4 +78,24 @@ def plan_to_response(plan: Plan) -> PlanResponse:
         version=plan.version,
         tasks=[task_to_response(task) for task in plan.tasks],
         dependencies=[dependency_to_response(dependency) for dependency in plan.dependencies],
+    )
+
+
+def excel_issue_to_response(issue: ExcelValidationIssue) -> ExcelValidationIssueResponse:
+    return ExcelValidationIssueResponse(
+        worksheet=issue.worksheet,
+        row=issue.row,
+        column=issue.column,
+        code=issue.code,
+        message=issue.message,
+    )
+
+
+def excel_validation_error_to_response(
+    message: str,
+    issues: list[ExcelValidationIssue],
+) -> ExcelValidationErrorResponse:
+    return ExcelValidationErrorResponse(
+        message=message,
+        errors=[excel_issue_to_response(validation_issue) for validation_issue in issues],
     )

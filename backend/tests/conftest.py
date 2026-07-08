@@ -7,13 +7,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.api.plans import get_plan_service
-from app.application.plan_service import PlanService
 from app.domain.entities import Plan, Task, TaskDependency
 from app.domain.scheduler import schedule_plan
 from app.infrastructure.database import models  # noqa: F401
 from app.infrastructure.database.base import Base
-from app.infrastructure.repositories.sqlalchemy_plan_repository import SQLAlchemyPlanRepository
+from app.infrastructure.database.session import get_session
 from app.main import create_app
 
 
@@ -69,10 +67,10 @@ def sample_plan() -> Plan:
 def client(db_session: Session) -> Generator[TestClient]:
     app = create_app()
 
-    def override_plan_service() -> PlanService:
-        return PlanService(SQLAlchemyPlanRepository(db_session))
+    def override_session() -> Generator[Session]:
+        yield db_session
 
-    app.dependency_overrides[get_plan_service] = override_plan_service
+    app.dependency_overrides[get_session] = override_session
 
     with TestClient(app) as test_client:
         yield test_client

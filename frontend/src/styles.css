@@ -353,6 +353,16 @@ button {
   box-shadow: -20px 0 40px rgb(15 23 42 / 12%);
 }
 
+.import-dialog {
+  width: min(520px, 100vw);
+  max-height: 100%;
+  overflow-y: auto;
+  border-left: 1px solid var(--border);
+  background: var(--panel);
+  padding: 22px;
+  box-shadow: -20px 0 40px rgb(15 23 42 / 12%);
+}
+
 .drawer-header {
   display: flex;
   align-items: flex-start;
@@ -380,6 +390,84 @@ button {
 .detail-list dd {
   margin: 4px 0 0;
   line-height: 1.5;
+}
+
+.import-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.import-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.import-form input {
+  min-height: 38px;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: #17202a;
+  font: inherit;
+  padding: 0 10px;
+}
+
+.selected-file,
+.sample-link {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.sample-link {
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+
+.form-error {
+  margin: 0 0 12px;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  background: #fff1f2;
+  color: #991b1b;
+  padding: 10px 12px;
+}
+
+.validation-report {
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  background: #fff7f7;
+  padding: 12px;
+}
+
+.validation-report p {
+  margin: 0 0 8px;
+  color: #991b1b;
+  font-weight: 700;
+}
+
+.validation-report ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.validation-report li {
+  line-height: 1.4;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
 }
 
 .state-page {

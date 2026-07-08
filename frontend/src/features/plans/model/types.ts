@@ -25,3 +25,28 @@ export type PlanDto = {
   tasks: TaskDto[];
   dependencies: TaskDependencyDto[];
 };
+
+export type ImportPlanRequest = {
+  file: File;
+  planName: string;
+  startDate: string;
+};
+
+export type ImportValidationIssue = {
+  worksheet: string | null;
+  row: number | null;
+  column: string | null;
+  code: string;
+  message: string;
+};
+
+export type ImportValidationErrorPayload = {
+  code: 'excel_validation_failed';
+  message: string;
+  errors: ImportValidationIssue[];
+};
+
+export type ExportPlanResult = {
+  blob: Blob;
+  filename: string;
+};
